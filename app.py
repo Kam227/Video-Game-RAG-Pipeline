@@ -181,32 +181,41 @@ for message in st.session_state.messages:
 # st.chat_input returns None until user submits, then returns their text
 # The := (walrus operator) assigns AND checks in one line
 
-if prompt := st.chat_input("Ask a question about video games..."):
-    
-    # TO DO: Add user message to history
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    
-    # TO DO: Display user message
+if "pending_prompt" not in st.session_state:
+    st.session_state.pending_prompt = None
+
+prompt = st.chat_input("Ask a question about video games...") or st.session_state.pending_prompt
+
+if prompt:
+    # Clear pending prompt so it doesn't repeat
+    st.session_state.pending_prompt = None
+
+    # Add user message to history
+    st.session_state.messages.append({
+        "role": "user",
+        "content": prompt
+    })
+
+    # Display user message
     with st.chat_message("user"):
         st.markdown(prompt)
-    
+
     # Generate and display assistant response
     with st.chat_message("assistant"):
         with st.spinner("Searching database and generating answer..."):
             try:
-                # TO DO: Initialize Agent
-                agent = RAGAgent(db = st.session_state.database,
-                                 model_name = model_choice,
-                                 max_iter=max_iter)
-                
-                # Get answer
+                agent = RAGAgent(
+                    db=st.session_state.database,
+                    model_name=model_choice,
+                    max_iter=max_iter
+                )
+
                 result = agent.ask(prompt)
                 response = result["answer"]
                 sources = result["sources"]
-                
+
                 st.markdown(response)
-                
-                # Display sources immediately
+
                 if sources:
                     with st.expander(f"📚 View Sources ({len(sources)} passages retrieved)"):
                         for i, source in enumerate(sources, 1):
@@ -220,14 +229,14 @@ if prompt := st.chat_input("Ask a question about video games..."):
                             )
                             if i < len(sources):
                                 st.divider()
-                
-                # Add to history with sources
+
+                # Add assistant message to history
                 st.session_state.messages.append({
                     "role": "assistant",
                     "content": response,
                     "sources": sources
                 })
-                
+
             except Exception as e:
                 error_msg = f"❌ Error: {str(e)}"
                 st.error(error_msg)
@@ -236,6 +245,7 @@ if prompt := st.chat_input("Ask a question about video games..."):
                     "content": error_msg,
                     "sources": []
                 })
+
 
 # TO DO: Example questions in an expander
 with st.expander("💡 Example Questions"):
@@ -249,6 +259,5 @@ with st.expander("💡 Example Questions"):
 
     for example in examples:
         if st.button(example, key=example):
-            # Simulate entering the question
-            st.session_state.messages.append({"role": "user", "content": example})
+            st.session_state.pending_prompt = example
             st.rerun()

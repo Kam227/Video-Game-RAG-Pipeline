@@ -20,7 +20,7 @@ class RAGDatabase:
         # STORE PATH
         self.db_path = DEFAULT_DB_PATH
         # LOAD MODEL METHOD
-
+        self.model = self._load_model()
     # @st.cache_resource because Streamlit reruns entire script on ever interaction
     # @st.cache_resource stores information throughout session
     # @staticmethod caches info because functions can't use 'self'
@@ -81,7 +81,13 @@ class RAGDatabase:
             
             # TO DO: Format results for the agent
             # Each result row is (text, similarity_score)
-            return [{"text": row[0], "similarity": float(row[1])} for row in results]
+            return [
+                {
+                    "text": row[0],
+                    "similarity": 1.0 - float(row[1])
+                }
+                for row in results
+            ]
 
         except Exception as e:
             raise Exception(f"Database query failed: {str(e)}")
